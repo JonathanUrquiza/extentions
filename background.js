@@ -1,53 +1,38 @@
 let intervalId = null;
-let intervalTime = 5000; // 5 segundos por defecto
-let isActive = false;
+let currentGroupId = null;
+let intervalTime = 8000; // 8 segundos por defecto
 
-// Escuchar mensajes del popup para activar/desactivar y cambiar el tiempo
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.type === 'TOGGLE_AUTOTAB') {
-    isActive = request.active;
-    if (isActive) {
-      startAutoTab();
-    } else {
-      stopAutoTab();
-    }
-    sendResponse({ success: true });
-  } else if (request.type === 'SET_INTERVAL') {
-    intervalTime = request.interval;
-    if (isActive) {
-      stopAutoTab();
-      startAutoTab();
-    }
-    sendResponse({ success: true });
+async function switchTabsInGroup() {
+  if (!currentGroupId) return;
+  const tabs = await chrome.tabs.query({ groupId: currentGroupId });
+  if (tabs.length === 0) return;
+  // Encuentra la pestaña activa actual en el grupo
+  const activeTab = tabs.find(tab => tab.active);
+  let nextIndex = 0;
+  if (activeTab) {
+    nextIndex = (tabs.findIndex(tab => tab.id === activeTab.id) + 1) % tabs.length;
   }
-});
+  chrome.tabs.update(tabs[nextIndex].id, { active: true });
+}
 
 function startAutoTab() {
   if (intervalId) clearInterval(intervalId);
-  intervalId = setInterval(() => {
-    chrome.windows.getLastFocused({ populate: true }, (window) => {
-      if (!window || !window.tabs) return;
-      const tabs = window.tabs.filter(tab => !tab.pinned && tab.url && tab.active !== undefined);
-      if (tabs.length <= 1) return;
-      const activeIndex = tabs.findIndex(tab => tab.active);
-      const nextIndex = (activeIndex + 1) % tabs.length;
-      chrome.tabs.update(tabs[nextIndex].id, { active: true });
-    });
-  }, intervalTime);
-}
-
-function stopAutoTab() {
-  if (intervalId) {
-    clearInterval(intervalId);
-    intervalId = null;
+  if (currentGroupId) {
+    intervalId = setInterval(switchTabsInGroup, intervalTime);
   }
 }
 
-// Inicializar desde storage
-chrome.storage.sync.get(['autotabActive', 'autotabInterval'], (data) => {
-  isActive = data.autotabActive || false;
-  intervalTime = data.autotabInterval || 5000;
-  if (isActive) {
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg.type === 'setGroupAndInterval') {
+    currentGroupId = msg.groupId;
+    intervalTime = msg.interval;
     startAutoTab();
+    sendResponse({ status: 'ok' });
+  } else if (msg.type === 'getState') {
+    sendResponse({ groupId: currentGroupId, interval: intervalTime });
+  } else if (msg.type === 'stopAutoTab') {
+    if (intervalId) clearInterval(intervalId);
+    intervalId = null;
+    sendResponse({ status: 'stopped' });
   }
 }); 

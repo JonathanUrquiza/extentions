@@ -2,19 +2,25 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>AutoTab</title>
+  <title>AutoTab Group Switcher</title>
   <style>
-    body { font-family: Arial, sans-serif; min-width: 200px; padding: 10px; }
-    #toggle { width: 100%; margin-bottom: 10px; }
-    #interval { width: 50px; }
+    body { font-family: Arial, sans-serif; min-width: 250px; padding: 10px; }
+    label { display: block; margin-top: 10px; }
+    select, input { width: 100%; margin-top: 5px; }
+    button { margin-top: 15px; width: 100%; }
   </style>
 </head>
 <body>
-  <button id="toggle">Activar AutoTab</button>
-  <div>
-    <label for="interval">Intervalo (seg):</label>
-    <input type="number" id="interval" min="1" value="5">
-  </div>
+  <label for="groupSelect">Grupo de pestañas:</label>
+  <select id="groupSelect"></select>
+
+  <label for="intervalInput">Intervalo (segundos):</label>
+  <input type="number" id="intervalInput" min="1" value="8">
+
+  <button id="saveBtn">Guardar</button>
+  <button id="stopBtn" style="margin-top:5px;background:#e74c3c;color:white;">Detener AutoTab</button>
+
+  <div id="status" style="margin-top:10px;color:green;"></div>
   <script src="popup.js"></script>
 </body>
 </html> 
